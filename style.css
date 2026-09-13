@@ -169,13 +169,14 @@ h1 { font-size: 26px; margin: 0; letter-spacing: .02em; }
 .stage-idle p { margin: 0; }
 .die-img { width: 110px; height: 110px; filter: drop-shadow(0 6px 10px rgba(0,0,0,.6)); }
 .deck-back {
-  width: 120px; height: 168px; border-radius: 10px; border: 2px solid #4a3a3a;
+  width: 170px; height: 236px; border-radius: 8px; border: 2px solid #4a3a3a;
   background: repeating-linear-gradient(135deg, #2a1e1e 0 6px, #241a1a 6px 12px);
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
   box-shadow: 0 6px 12px rgba(0,0,0,.6), 3px 3px 0 #1a1212, 6px 6px 0 #150f0f;
 }
-.deck-back img { width: 44px; height: 44px; opacity: .8; }
+.deck-back img { width: 56px; height: 56px; opacity: .8; }
 .deck-back span { font-weight: 800; font-size: 20px; }
+.stage-idle.deck { gap: 6px; }
 
 .stage-result { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 14px; width: 100%; }
 .card-wrap { position: relative; width: 170px; }
@@ -193,15 +194,16 @@ h1 { font-size: 26px; margin: 0; letter-spacing: .02em; }
 .power-result p { margin: 0; font-size: 15px; line-height: 1.5; text-align: left; max-width: 480px; }
 .stage-rolling .die-img { animation: drop .55s cubic-bezier(.3,.9,.4,1.15); }
 @keyframes drop {
-  0% { transform: translateY(-160px) rotate(-90deg) scale(1.15); opacity: 0; }
-  55% { transform: translateY(0) rotate(8deg) scale(.96, 1.04); opacity: 1; }
-  70% { transform: translateY(-14px) rotate(-4deg) scale(1.02, .98); }
+  0% { transform: translateY(-180px) rotate(-720deg) scale(1.15); opacity: 0; }
+  10% { opacity: 1; }
+  55% { transform: translateY(0) rotate(-40deg) scale(.96, 1.04); }
+  72% { transform: translateY(-16px) rotate(-12deg) scale(1.02, .98); }
   100% { transform: translateY(0) rotate(0) scale(1); }
 }
 .stage { perspective: 900px; }
-.stage-rolling .deck-back { animation: flipout .5s ease-in forwards; }
+.stage-rolling .deck-back { animation: flipout .18s ease-in forwards; }
 @keyframes flipout { from { transform: rotateY(0); } to { transform: rotateY(90deg); } }
-.flip-card { animation: flipcard .35s ease-out; }
+.flip-card { animation: flipcard .18s ease-out; }
 @keyframes flipcard { from { transform: rotateY(-90deg); } to { transform: rotateY(0); } }
 .power-text { text-align: left; font-size: 15px; line-height: 1.5; max-width: 480px; }
 .flip-in { animation: dropin .32s cubic-bezier(.2,.8,.3,1.2); }

@@ -20,7 +20,7 @@
   };
   const KILLER_TILE_ORDER = ['red', 'green', 'yellow', 'blue'];
   const SURVIVOR_TILE_ORDER = ['yellow', 'blue', 'green', 'red'];
-  const ANIM = { roll: 600, draw: 550, skill: 450, toast: 2200 };
+  const ANIM = { roll: 600, draw: 180, skill: 450, toast: 2200 };
 
   const LOCALES = window.DBD_LOCALES || {};
   const $ = id => document.getElementById(id);
