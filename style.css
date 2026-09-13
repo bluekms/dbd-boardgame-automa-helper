@@ -227,13 +227,13 @@ h1 { font-size: 26px; margin: 0; letter-spacing: .02em; }
 .sc-roll { border: 1px solid var(--red2); background: var(--red2); color: #fff; border-radius: 999px; padding: 7px 16px; font-weight: 800; }
 .sc-dice { display: flex; gap: 8px; justify-content: center; min-height: 0; flex-wrap: wrap; }
 .sc-die {
-  width: 56px; height: 56px; border-radius: 12px; background: #111; border: 2px solid #333;
+  width: 60px; height: 60px; border-radius: 14px; background: #111; border: 2px solid #333;
   display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 26px; color: #fff;
-  box-shadow: inset 0 -4px 0 rgba(0,0,0,.6), 0 4px 8px rgba(0,0,0,.5);
+  box-shadow: inset 0 -4px 0 rgba(0,0,0,.6), 0 4px 8px rgba(0,0,0,.5); overflow: hidden;
 }
-.sc-die img { width: 36px; height: 36px; }
-.sc-die.fail { border-color: var(--red); background: #2a0f0f; }
-.sc-die.great { border-color: var(--gold); background: #2a2210; }
+.sc-die img { width: 60px; height: 60px; }
+.sc-die.fail { border-color: var(--red); box-shadow: 0 0 0 2px rgba(179,38,30,.35), 0 4px 8px rgba(0,0,0,.5); }
+.sc-die.great { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(201,162,39,.35), 0 4px 8px rgba(0,0,0,.5); }
 .sc-die.rolling { animation: drop .45s cubic-bezier(.3,.9,.4,1.15); }
 .sc-summary { font-size: 14px; text-align: center; min-height: 18px; }
 .sc-summary .fail { color: #f08a84; font-weight: 700; }

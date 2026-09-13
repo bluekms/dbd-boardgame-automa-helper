@@ -9,6 +9,7 @@
   const MOVE_FACES = ['vault', 'crouch', 'sneak', 'sprint', 'wait', 'power'];
   const DECK_CARDS = ['vault', 'crouch', 'sneak', 'sprint'];
   const COPIES_PER_CARD = 4;
+  const UNDO_DEPTH = 8;
   const SKILL_DIE_FAIL = 0;
   const SKILL_DIE_GREAT = 5;
   const POWER_BP = 4;
@@ -33,6 +34,7 @@
     lang: DEFAULT_LANG,
     killer: KILLERS[0],
     deck: [],
+    drawHistory: [],
     busy: false,
     survivorBP: Object.fromEntries(SURVIVORS.map(s => [s, 0])),
     survivorTouched: false,
@@ -246,18 +248,32 @@
   }
   function resetDeck() {
     state.deck = newDeck();
+    state.drawHistory = [];
     updateDeckCount();
+  }
+  function undoDraw() {
+    const prev = state.drawHistory.pop();
+    if (!prev) return;
+    state.deck = prev.deck;
+    updateDeckCount();
+    if (prev.html) showStageResult('survivor', prev.html); else resetStage('survivor');
+    toast(t('ui.undone', { card: t('card.' + prev.card) }));
   }
   function updateDeckCount() {
     $('deck-count').textContent = t('ui.remaining', { n: state.deck.length });
   }
   function drawCard() {
+    // 실수로 뽑았을 때 되돌릴 수 있도록 뽑기 전 더미와 화면을 남겨 둔다
+    const snapshot = { deck: state.deck.slice(), html: $('survivor-stage-result').innerHTML };
     animateStage('survivor', ANIM.draw, () => {
       if (state.deck.length === 0) {
-        resetDeck();
+        state.deck = newDeck();
         toast(t('ui.deckReshuffled'));
       }
       const key = state.deck.pop();
+      snapshot.card = key;
+      state.drawHistory.push(snapshot);
+      if (state.drawHistory.length > UNDO_DEPTH) state.drawHistory.shift();
       updateDeckCount();
       showStageResult('survivor', cardHtml(key, t('card.' + key), 'flip-card') +
         `<div class="result-hint">${t('ui.remaining', { n: state.deck.length })} · ${t('ui.tapAgainDraw')}</div>`);
@@ -274,9 +290,8 @@
     summary.textContent = '';
     setTimeout(() => {
       dice.innerHTML = results.map(r => {
-        if (r === SKILL_DIE_FAIL) return '<div class="sc-die fail flip-in"><img src="resource/icon-skull.png" alt="0"></div>';
-        if (r === SKILL_DIE_GREAT) return '<div class="sc-die great flip-in"><img src="resource/icon-claw.png" alt="5"></div>';
-        return `<div class="sc-die flip-in">${r}</div>`;
+        const cls = r === SKILL_DIE_FAIL ? 'fail' : r === SKILL_DIE_GREAT ? 'great' : '';
+        return `<div class="sc-die ${cls} flip-in"><img src="resource/die-face-${r}.png" alt="${r}"></div>`;
       }).join('');
       const fails = results.filter(r => r === SKILL_DIE_FAIL).length;
       const greats = results.filter(r => r === SKILL_DIE_GREAT).length;
@@ -377,6 +392,7 @@
     'roll-move': () => rollMove(),
     'draw-card': () => drawCard(),
     'draw-again': () => drawCard(),
+    'undo-draw': () => undoDraw(),
     'reset-deck': () => { resetDeck(); resetStage('survivor'); toast(t('ui.deckReset')); },
     'sc-count': el => { state.skillDice[el.dataset.who] = +el.dataset.n; renderSkillChecks(); },
     'sc-roll': el => rollSkillCheck(el.dataset.who),
