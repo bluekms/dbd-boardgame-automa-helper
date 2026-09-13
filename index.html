@@ -16,7 +16,7 @@
       <div class="topbar">
         <span></span>
         <span></span>
-        <button class="lang-btn" data-action="lang"></button>
+        <div class="lang-wrap"><button class="lang-btn" data-action="lang-menu"></button></div>
       </div>
       <div class="center-col">
         <img class="logo" src="resource/icon-bp.png" alt="">
@@ -39,7 +39,7 @@
       <div class="topbar">
         <button class="icon-btn" data-action="back" aria-label="back">&lsaquo;</button>
         <span class="topbar-title" data-i18n="home.killer"></span>
-        <button class="lang-btn" data-action="lang"></button>
+        <div class="lang-wrap"><button class="lang-btn" data-action="lang-menu"></button></div>
       </div>
       <div class="center-col">
         <p class="sub" data-i18n="select.killerPrompt"></p>
@@ -58,7 +58,7 @@
         <button class="icon-btn" data-action="back" aria-label="back">&lsaquo;</button>
         <button class="portrait-btn" data-action="toggle" data-panel="killer-power"><img id="killer-portrait" src="" alt=""></button>
         <span class="topbar-title" id="killer-name"></span>
-        <button class="lang-btn" data-action="lang"></button>
+        <div class="lang-wrap"><button class="lang-btn" data-action="lang-menu"></button></div>
         <button class="text-btn" data-action="toggle" data-panel="killer-rules" data-i18n="ui.rules"></button>
       </div>
       <div class="tile-bar"><span data-i18n="ui.revealTiles"></span><div class="tile-priority" id="killer-tile-priority"></div></div>
@@ -120,7 +120,7 @@
         <button class="portrait-row" data-action="toggle" data-panel="survivor-power">
           <img src="resource/survivor-dwight.png" alt=""><img src="resource/survivor-meg.png" alt=""><img src="resource/survivor-jake.png" alt=""><img src="resource/survivor-claudette.png" alt="">
         </button>
-        <button class="lang-btn" data-action="lang"></button>
+        <div class="lang-wrap"><button class="lang-btn" data-action="lang-menu"></button></div>
         <button class="text-btn" data-action="toggle" data-panel="survivor-items" data-i18n="ui.items"></button>
         <button class="text-btn" data-action="toggle" data-panel="survivor-rules" data-i18n="ui.rules"></button>
       </div>
@@ -169,6 +169,9 @@
 
   </div>
   <div id="toast" class="toast hidden"></div>
+  <!-- 언어 추가: locales/<code>.js 를 만들고 아래에 한 줄 추가한다 (README 참고) -->
+  <script src="locales/en.js"></script>
+  <script src="locales/ko.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
