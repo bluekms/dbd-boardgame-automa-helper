@@ -34,6 +34,8 @@ window.DBD_LOCALES.ko = {
     'ui.interactionPriority': '상호작용 우선순위',
     'ui.survivorPowers': '오토마 생존자 고유 능력',
     'ui.drawAgain': '경로 없음 → 1장 더',
+    'ui.undo': '되돌리기',
+    'ui.undone': '{card} 뽑기를 되돌렸습니다',
     'ui.resetDeck': '더미 초기화',
     'ui.deckReshuffled': '버린 더미를 섞어 새 더미를 만들었습니다',
     'ui.deckReset': '더미를 초기화했습니다 (16장)',

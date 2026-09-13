@@ -35,6 +35,8 @@ window.DBD_LOCALES.en = {
     'ui.interactionPriority': 'Interaction priority',
     'ui.survivorPowers': 'Automa Survivor powers',
     'ui.drawAgain': 'Path unavailable → draw another',
+    'ui.undo': 'Undo',
+    'ui.undone': 'Undid {card}',
     'ui.resetDeck': 'Reset deck',
     'ui.deckReshuffled': 'Discard pile reshuffled into a new deck',
     'ui.deckReset': 'Deck reset (16 cards)',
