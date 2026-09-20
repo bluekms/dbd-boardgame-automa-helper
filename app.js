@@ -40,7 +40,7 @@
     drawHistory: [],
     busy: false,
     survivorBP: Object.fromEntries(SURVIVORS.map(s => [s, 0])),
-    survivorTouched: false,
+    survivorTouched: Object.fromEntries(SURVIVORS.map(s => [s, false])),
     survivorSacrifice: Object.fromEntries(SURVIVORS.map(s => [s, true])),
     survivorOrder: SURVIVORS.slice(),
     skillDice: { killer: 1, survivor: 1 },
@@ -168,12 +168,11 @@
     </div>`;
   }
 
-  function renderSurvivorCounters() {
-    $('survivor-counters').innerHTML = state.survivorOrder.map(s => {
-      const bp = state.survivorBP[s];
-      const ready = bp >= POWER_BP;
-      const hasToken = state.survivorSacrifice[s];
-      return `<div class="counter ${ready ? 'power-ready' : ''}">
+  function survivorCardHtml(s) {
+    const bp = state.survivorBP[s];
+    const ready = bp >= POWER_BP;
+    const hasToken = state.survivorSacrifice[s];
+    return `<div class="counter ${ready ? 'power-ready' : ''}" id="surv-card-${s}">
         <div class="counter-label">
           <button class="sac-token ${hasToken ? '' : 'hidden'}" data-action="hide-sac" data-surv="${s}" aria-label="sacrifice token"><img src="resource/token-sacrifice.png" alt=""></button>
           <button class="portrait-toggle" data-action="show-sac" data-surv="${s}"><img class="round" src="resource/survivor-${s}.png" alt=""></button>
@@ -182,15 +181,38 @@
         <div class="counter-ctl">
           <button class="ctl-btn" data-action="count" data-counter="surv-${s}" data-delta="-1">&minus;</button>
           <input class="ctl-val" type="number" inputmode="numeric" min="0" max="6" value="${bp}" data-counter="surv-${s}">
-          <button class="ctl-btn plus ${state.survivorTouched ? '' : 'blink'}" data-action="count" data-counter="surv-${s}" data-delta="1">+</button>
+          <button class="ctl-btn plus ${state.survivorTouched[s] ? '' : 'blink'}" data-action="count" data-counter="surv-${s}" data-delta="1">+</button>
         </div>
         <div class="counter-note ${ready ? 'power' : ''}">${ready ? t('ui.powerReady') : '&nbsp;'}</div>
       </div>`;
-    }).join('');
+  }
+  // blink 은 CSS에서 5회만 재생되지만, "이미 알렸음" 상태로 남겨두지 않으면 다른 이유로
+  // 다시 그려질 때 처음부터 재생된다. 애니메이션이 자연히 끝나는 순간을 감지해 기록한다.
+  function watchBlink(btn) {
+    if (!btn || !btn.classList.contains('blink')) return;
+    btn.addEventListener('animationend', () => {
+      state.survivorTouched[btn.dataset.counter.slice(5)] = true;
+    }, { once: true });
+  }
+  function renderSurvivorCounters() {
+    $('survivor-counters').innerHTML = state.survivorOrder.map(survivorCardHtml).join('');
+    qsa('.ctl-btn.plus.blink', $('survivor-counters')).forEach(watchBlink);
+  }
+  // 생존자 한 명의 카드만 다시 그린다. 전체를 innerHTML로 다시 그리면 다른 생존자의
+  // 깜빡임(blink)까지 새 DOM으로 교체되어 애니메이션이 처음부터 재생되므로,
+  // 건드린 생존자의 카드만 교체해 나머지의 깜빡임 진행을 건드리지 않는다.
+  function updateSurvivorCard(s) {
+    const el = $(`surv-card-${s}`);
+    if (!el) { renderSurvivorCounters(); return; }
+    el.outerHTML = survivorCardHtml(s);
+    watchBlink(document.querySelector(`#surv-card-${s} .ctl-btn.plus`));
   }
   function setSacToken(s, visible) {
     state.survivorSacrifice[s] = visible;
-    renderSurvivorCounters();
+    // 카드 전체를 다시 그리면(updateSurvivorCard) BP +버튼도 새 DOM으로 바뀌어, 아직 안
+    // 건드린 생존자라면 본인의 깜빡임(blink)까지 불필요하게 재시작된다. 토큰 아이콘만 토글한다.
+    const btn = document.querySelector(`#surv-card-${s} .sac-token`);
+    if (btn) btn.classList.toggle('hidden', !visible);
   }
 
   function updateKillerBpNote() {
@@ -444,7 +466,7 @@
   function resetSurvivorSession() {
     state.survivorBP = Object.fromEntries(SURVIVORS.map(s => [s, 0]));
     state.survivorSacrifice = Object.fromEntries(SURVIVORS.map(s => [s, true]));
-    state.survivorTouched = false;
+    state.survivorTouched = Object.fromEntries(SURVIVORS.map(s => [s, false]));
     state.skillDice.survivor = 1;
     renderSurvivorCounters();
     renderSkillChecks();
@@ -469,7 +491,11 @@
     },
     'pick-killer': el => { state.killer = el.dataset.killer; renderKiller(); resetStage('killer'); go('killer'); },
     'toggle': el => togglePanel(el),
-    'count': el => setCounter(el.dataset.counter, (+counterInput(el.dataset.counter).value || 0) + +el.dataset.delta),
+    'count': el => {
+      setCounter(el.dataset.counter, (+counterInput(el.dataset.counter).value || 0) + +el.dataset.delta);
+      // 블러드 포인트 증가를 알리던 깜빡임(pulse)은 실제로 증가 버튼을 누르면 바로 종료한다
+      el.classList.remove('pulse');
+    },
     'roll-move': () => rollMove(),
     'draw-card': () => drawCard(),
     'undo-draw': () => undoDraw(),
