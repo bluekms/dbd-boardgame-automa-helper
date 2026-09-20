@@ -24,7 +24,7 @@
   };
   const KILLER_TILE_ORDER = ['red', 'green', 'yellow', 'blue'];
   const SURVIVOR_TILE_ORDER = ['yellow', 'blue', 'green', 'red'];
-  const ANIM = { roll: 600, draw: 180, skill: 450, toast: 2200 };
+  const ANIM = { roll: 600, draw: 180, skill: 450, skillStagger: 220, skillReset: 160, toast: 2200 };
 
   const LOCALES = window.DBD_LOCALES || {};
   const $ = id => document.getElementById(id);
@@ -44,6 +44,7 @@
     survivorSacrifice: Object.fromEntries(SURVIVORS.map(s => [s, true])),
     survivorOrder: SURVIVORS.slice(),
     skillDice: { killer: 1, survivor: 1 },
+    skillRollToken: { killer: 0, survivor: 0 },
   };
 
   function shuffled(arr) {
@@ -310,22 +311,49 @@
     const dice = $(`${who}-sc-dice`);
     const summary = $(`${who}-sc-summary`);
     const results = Array.from({ length: n }, () => rand(6));
-    dice.innerHTML = results.map(() => '<div class="sc-die rolling">?</div>').join('');
+    // 이전 굴리기에서 아직 안 끝난 예약(setTimeout)이 새 굴리기의 주사위를 덮어쓰지 않도록 세대 토큰을 발급한다
+    const token = ++state.skillRollToken[who];
+    const stale = () => state.skillRollToken[who] !== token;
+
+    // 주사위 개수를 바꿨을 때와 똑같이, 먼저 완전히 비운 상태를 한 프레임 그린 뒤에 굴리기 연출을 시작한다
+    dice.innerHTML = '';
     summary.textContent = '';
+    void dice.offsetWidth; // 리플로우를 강제해 빈 상태가 실제로 화면에 찍히게 한다
+
     setTimeout(() => {
-      dice.innerHTML = results.map(r => {
-        const cls = r === SKILL_DIE_FAIL ? 'fail' : r === SKILL_DIE_GREAT ? 'great' : '';
-        return `<div class="sc-die ${cls} flip-in"><img src="resource/die-face-${r}.png" alt="${r}"></div>`;
-      }).join('');
-      const fails = results.filter(r => r === SKILL_DIE_FAIL).length;
-      const greats = results.filter(r => r === SKILL_DIE_GREAT).length;
-      const parts = [];
-      if (fails) parts.push(`<span class="fail">${t('ui.scFail', { n: fails })}</span>`);
-      if (greats) parts.push(`<span class="great">${t('ui.scGreat', { n: greats })}${n > 1 ? t('ui.scEscape') : ''}</span>`);
-      if (!parts.length) parts.push(t('ui.scOk'));
-      summary.innerHTML = parts.join(' · ');
-      if (fails && who === 'killer') pulse('killer-bp');
-    }, ANIM.skill);
+      if (stale()) return;
+      dice.innerHTML = results.map((_, i) => `<div class="sc-die" id="${who}-sc-die-${i}"></div>`).join('');
+      // 떨어지는 연출 자체를 슬롯머신처럼 하나씩 시차를 두고 시작한다
+      results.forEach((r, i) => {
+        const startDelay = i * ANIM.skillStagger;
+        setTimeout(() => {
+          if (stale()) return;
+          const el = $(`${who}-sc-die-${i}`);
+          if (!el) return;
+          el.className = 'sc-die rolling';
+          el.innerHTML = '<img src="resource/die-black.png" alt="">';
+        }, startDelay);
+        setTimeout(() => {
+          if (stale()) return;
+          const el = $(`${who}-sc-die-${i}`);
+          if (!el) return;
+          const cls = r === SKILL_DIE_FAIL ? 'fail' : r === SKILL_DIE_GREAT ? 'great' : '';
+          el.className = `sc-die ${cls} flip-in`;
+          el.innerHTML = `<img src="resource/die-face-${r}.png" alt="${r}">`;
+        }, startDelay + ANIM.skill);
+      });
+      setTimeout(() => {
+        if (stale()) return;
+        const fails = results.filter(r => r === SKILL_DIE_FAIL).length;
+        const greats = results.filter(r => r === SKILL_DIE_GREAT).length;
+        const parts = [];
+        if (fails) parts.push(`<span class="fail">${t('ui.scFail', { n: fails })}</span>`);
+        if (greats) parts.push(`<span class="great">${t('ui.scGreat', { n: greats })}${who === 'killer' ? t('ui.scEscape') : ''}</span>`);
+        if (!parts.length) parts.push(t('ui.scOk'));
+        summary.innerHTML = parts.join(' · ');
+        if (fails && who === 'killer') pulse('killer-bp');
+      }, (n - 1) * ANIM.skillStagger + ANIM.skill + 320);
+    }, ANIM.skillReset);
   }
 
   /* ---------------------------------------------------------------- 카운터 */
@@ -404,6 +432,26 @@
     toastTimer = setTimeout(() => el.classList.add('hidden'), ANIM.toast);
   }
 
+  /* ---------------------------------------------------------------- 화면을 나갈 때 세션 초기화 */
+  // 살인마/생존자 플레이 화면에서 뒤로 나가면, 그 사이 기록된 모든 진행 상황(카운터·주사위
+  // 선택·덱·굴림 결과)을 지워 다음에 다시 들어왔을 때 항상 처음 상태로 시작하게 한다.
+  function resetKillerSession() {
+    setCounter('killer-bp', 4);
+    state.skillDice.killer = 1;
+    renderSkillChecks();
+    resetStage('killer');
+  }
+  function resetSurvivorSession() {
+    state.survivorBP = Object.fromEntries(SURVIVORS.map(s => [s, 0]));
+    state.survivorSacrifice = Object.fromEntries(SURVIVORS.map(s => [s, true]));
+    state.survivorTouched = false;
+    state.skillDice.survivor = 1;
+    renderSurvivorCounters();
+    renderSkillChecks();
+    resetDeck();
+    resetStage('survivor');
+  }
+
   /* ---------------------------------------------------------------- 이벤트 */
   const ACTIONS = {
     'lang-menu': el => toggleLangMenu(el),
@@ -412,7 +460,13 @@
       if (el.dataset.screen === 'survivors') shuffleSurvivorOrder();
       go(el.dataset.screen);
     },
-    'back': () => history.back(),
+    'back': () => {
+      const guarded = state.screen === 'killer' || state.screen === 'survivors';
+      if (guarded && !confirm(t('ui.confirmLeave'))) return;
+      if (state.screen === 'killer') resetKillerSession();
+      if (state.screen === 'survivors') resetSurvivorSession();
+      history.back();
+    },
     'pick-killer': el => { state.killer = el.dataset.killer; renderKiller(); resetStage('killer'); go('killer'); },
     'toggle': el => togglePanel(el),
     'count': el => setCounter(el.dataset.counter, (+counterInput(el.dataset.counter).value || 0) + +el.dataset.delta),

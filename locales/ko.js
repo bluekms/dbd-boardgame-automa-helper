@@ -49,6 +49,7 @@ window.DBD_LOCALES.ko = {
     'ui.tapAgainDraw': '터치하면 다음 카드',
     'ui.remaining': '{n}장 남음',
     'ui.rerollHint': '해당 경로가 없거나 이전 차례와 같은 눈이면 다시 굴리세요.',
+    'ui.confirmLeave': '이 화면에서 나가시겠습니까? 앱을 닫기 전까지는 진행 상황이 유지됩니다.',
 
     'card.vault': '뛰어내리기',
     'card.crouch': '웅크리기',

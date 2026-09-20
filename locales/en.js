@@ -50,6 +50,7 @@ window.DBD_LOCALES.en = {
     'ui.tapAgainDraw': 'Tap to draw the next card',
     'ui.remaining': '{n} left',
     'ui.rerollHint': 'No matching path or same as previous turn? Roll again.',
+    'ui.confirmLeave': 'Leave this screen? Your progress stays until you close the app.',
 
     'card.vault': 'Vault',
     'card.crouch': 'Crouch',
