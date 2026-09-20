@@ -281,24 +281,31 @@
   }
 
   /* ---------------------------------------------------------------- 살인마 이동 주사위 */
+  function powerResultHtml(face) {
+    const k = state.killer;
+    return `<div class="power-result flip-in">
+          <img src="${killerPortrait(k)}" alt="">
+          <h3>${face} — ${t('killer.' + k)} · ${t('ui.power')}</h3>
+          <span class="badge warn">${t('result.power')}</span>
+          <div class="power-text">${t('power.' + k)}</div>
+        </div>`;
+  }
+  function moveResultHtml(face, key) {
+    // 0(뛰어내리기)은 스킬 체크의 실패 눈이라 룰북이 살인마 BP +1 을 함께 준다
+    const bpBadge = key === 'vault'
+      ? `<span class="badge bp"><img src="resource/icon-bp.png" alt="">${t('ui.bpPlus')}</span>` : '';
+    return cardHtml(key, `${face} — ${t('card.' + key)}`) + bpBadge +
+      `<div class="result-hint">${t('ui.rerollHint')}</div>`;
+  }
   function rollMove() {
     animateStage('killer', ANIM.roll, () => {
       const face = rand(MOVE_FACES.length);
       const key = MOVE_FACES[face];
       if (key === 'power') {
-        showStageResult('killer', `<div class="power-result flip-in">
-          <img src="${killerPortrait(state.killer)}" alt="">
-          <h3>${face} — ${t('killer.' + state.killer)} · ${t('ui.power')}</h3>
-          <span class="badge warn">${t('result.power')}</span>
-          <div class="power-text">${t('power.' + state.killer)}</div>
-        </div>`);
+        showStageResult('killer', powerResultHtml(face));
         return;
       }
-      // 0(뛰어내리기)은 스킬 체크의 실패 눈이라 룰북이 살인마 BP +1 을 함께 준다
-      const bpBadge = key === 'vault'
-        ? `<span class="badge bp"><img src="resource/icon-bp.png" alt="">${t('ui.bpPlus')}</span>` : '';
-      showStageResult('killer', cardHtml(key, `${face} — ${t('card.' + key)}`) + bpBadge +
-        `<div class="result-hint">${t('ui.rerollHint')}</div>`);
+      showStageResult('killer', moveResultHtml(face, key));
       if (key === 'vault') pulse('killer-bp');
     });
   }
@@ -342,6 +349,28 @@
   }
 
   /* ---------------------------------------------------------------- 스킬 체크 주사위 */
+  function dieResultClass(r) {
+    if (r === SKILL_DIE_FAIL) return 'fail';
+    if (r === SKILL_DIE_GREAT) return 'great';
+    return '';
+  }
+  function showRollingDie(el) {
+    el.className = 'sc-die rolling';
+    el.innerHTML = '<img src="resource/die-black.png" alt="">';
+  }
+  function showDieFace(el, r) {
+    el.className = `sc-die ${dieResultClass(r)} flip-in`;
+    el.innerHTML = `<img src="resource/die-face-${r}.png" alt="${r}">`;
+  }
+  function skillCheckSummaryHtml(who, results) {
+    const fails = results.filter(r => r === SKILL_DIE_FAIL).length;
+    const greats = results.filter(r => r === SKILL_DIE_GREAT).length;
+    const parts = [];
+    if (fails) parts.push(`<span class="fail">${t('ui.scFail', { n: fails })}</span>`);
+    if (greats) parts.push(`<span class="great">${t('ui.scGreat', { n: greats })}${who === 'killer' ? t('ui.scEscape') : ''}</span>`);
+    if (!parts.length) parts.push(t('ui.scOk'));
+    return { html: parts.join(' · '), fails };
+  }
   function rollSkillCheck(who) {
     const n = state.skillDice[who];
     const dice = $(`${who}-sc-dice`);
@@ -350,6 +379,12 @@
     // 이전 굴리기에서 아직 안 끝난 예약(setTimeout)이 새 굴리기의 주사위를 덮어쓰지 않도록 세대 토큰을 발급한다
     const token = ++state.skillRollToken[who];
     const stale = () => state.skillRollToken[who] !== token;
+    // 세대가 바뀌었거나 주사위 DOM 이 사라졌으면(개수 변경 등) 아무것도 하지 않는다
+    const withDie = (i, fn) => {
+      if (stale()) return;
+      const el = $(`${who}-sc-die-${i}`);
+      if (el) fn(el);
+    };
 
     // 주사위 개수를 바꿨을 때와 똑같이, 먼저 완전히 비운 상태를 한 프레임 그린 뒤에 굴리기 연출을 시작한다
     dice.innerHTML = '';
@@ -362,31 +397,13 @@
       // 떨어지는 연출 자체를 슬롯머신처럼 하나씩 시차를 두고 시작한다
       results.forEach((r, i) => {
         const startDelay = i * ANIM.skillStagger;
-        setTimeout(() => {
-          if (stale()) return;
-          const el = $(`${who}-sc-die-${i}`);
-          if (!el) return;
-          el.className = 'sc-die rolling';
-          el.innerHTML = '<img src="resource/die-black.png" alt="">';
-        }, startDelay);
-        setTimeout(() => {
-          if (stale()) return;
-          const el = $(`${who}-sc-die-${i}`);
-          if (!el) return;
-          const cls = r === SKILL_DIE_FAIL ? 'fail' : r === SKILL_DIE_GREAT ? 'great' : '';
-          el.className = `sc-die ${cls} flip-in`;
-          el.innerHTML = `<img src="resource/die-face-${r}.png" alt="${r}">`;
-        }, startDelay + ANIM.skill);
+        setTimeout(() => withDie(i, showRollingDie), startDelay);
+        setTimeout(() => withDie(i, el => showDieFace(el, r)), startDelay + ANIM.skill);
       });
       setTimeout(() => {
         if (stale()) return;
-        const fails = results.filter(r => r === SKILL_DIE_FAIL).length;
-        const greats = results.filter(r => r === SKILL_DIE_GREAT).length;
-        const parts = [];
-        if (fails) parts.push(`<span class="fail">${t('ui.scFail', { n: fails })}</span>`);
-        if (greats) parts.push(`<span class="great">${t('ui.scGreat', { n: greats })}${who === 'killer' ? t('ui.scEscape') : ''}</span>`);
-        if (!parts.length) parts.push(t('ui.scOk'));
-        summary.innerHTML = parts.join(' · ');
+        const { html, fails } = skillCheckSummaryHtml(who, results);
+        summary.innerHTML = html;
         if (fails && who === 'killer') pulse('killer-bp');
       }, (n - 1) * ANIM.skillStagger + ANIM.skill + ANIM.skillSummary);
     }, ANIM.skillReset);
