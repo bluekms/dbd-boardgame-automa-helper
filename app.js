@@ -41,8 +41,23 @@
     busy: false,
     survivorBP: Object.fromEntries(SURVIVORS.map(s => [s, 0])),
     survivorTouched: false,
+    survivorSacrifice: Object.fromEntries(SURVIVORS.map(s => [s, true])),
+    survivorOrder: SURVIVORS.slice(),
     skillDice: { killer: 1, survivor: 1 },
   };
+
+  function shuffled(arr) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = rand(i + 1);
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+  function shuffleSurvivorOrder() {
+    state.survivorOrder = shuffled(SURVIVORS);
+    renderSurvivorCounters();
+  }
 
   /* ---------------------------------------------------------------- i18n */
   function loadLang() {
@@ -98,6 +113,7 @@
   function renderKiller() {
     const k = state.killer;
     $('killer-portrait').src = `resource/killer-${k}.png`;
+    $('killer-bp-portrait').src = `resource/killer-${k}.png`;
     $('killer-name').textContent = t('killer.' + k);
     $('killer-power-title').textContent = `${t('killer.' + k)} — ${t('ui.power')}`;
     $('killer-power-body').innerHTML = t('power.' + k) + `<p class="muted">${t('power.note')}</p>`;
@@ -152,11 +168,16 @@
   }
 
   function renderSurvivorCounters() {
-    $('survivor-counters').innerHTML = SURVIVORS.map(s => {
+    $('survivor-counters').innerHTML = state.survivorOrder.map(s => {
       const bp = state.survivorBP[s];
       const ready = bp >= POWER_BP;
+      const hasToken = state.survivorSacrifice[s];
       return `<div class="counter ${ready ? 'power-ready' : ''}">
-        <div class="counter-label"><img class="round" src="resource/survivor-${s}.png" alt=""><span>${t('surv.' + s)}</span></div>
+        <div class="counter-label">
+          <button class="sac-token ${hasToken ? '' : 'hidden'}" data-action="hide-sac" data-surv="${s}" aria-label="sacrifice token"><img src="resource/token-sacrifice.png" alt=""></button>
+          <button class="portrait-toggle" data-action="show-sac" data-surv="${s}"><img class="round" src="resource/survivor-${s}.png" alt=""></button>
+          <span>${t('surv.' + s)}</span>
+        </div>
         <div class="counter-ctl">
           <button class="ctl-btn" data-action="count" data-counter="surv-${s}" data-delta="-1">&minus;</button>
           <input class="ctl-val" type="number" inputmode="numeric" min="0" max="6" value="${bp}" data-counter="surv-${s}">
@@ -165,6 +186,10 @@
         <div class="counter-note ${ready ? 'power' : ''}">${ready ? t('ui.powerReady') : '&nbsp;'}</div>
       </div>`;
     }).join('');
+  }
+  function setSacToken(s, visible) {
+    state.survivorSacrifice[s] = visible;
+    renderSurvivorCounters();
   }
 
   function updateKillerBpNote() {
@@ -243,12 +268,7 @@
 
   /* ---------------------------------------------------------------- 생존자 이동 카드 더미 */
   function newDeck() {
-    const deck = DECK_CARDS.flatMap(c => Array(COPIES_PER_CARD).fill(c));
-    for (let i = deck.length - 1; i > 0; i--) {
-      const j = rand(i + 1);
-      [deck[i], deck[j]] = [deck[j], deck[i]];
-    }
-    return deck;
+    return shuffled(DECK_CARDS.flatMap(c => Array(COPIES_PER_CARD).fill(c)));
   }
   function resetDeck() {
     state.deck = newDeck();
@@ -388,18 +408,22 @@
   const ACTIONS = {
     'lang-menu': el => toggleLangMenu(el),
     'set-lang': el => setLang(el.dataset.lang),
-    'go': el => go(el.dataset.screen),
+    'go': el => {
+      if (el.dataset.screen === 'survivors') shuffleSurvivorOrder();
+      go(el.dataset.screen);
+    },
     'back': () => history.back(),
     'pick-killer': el => { state.killer = el.dataset.killer; renderKiller(); resetStage('killer'); go('killer'); },
     'toggle': el => togglePanel(el),
     'count': el => setCounter(el.dataset.counter, (+counterInput(el.dataset.counter).value || 0) + +el.dataset.delta),
     'roll-move': () => rollMove(),
     'draw-card': () => drawCard(),
-    'draw-again': () => drawCard(),
     'undo-draw': () => undoDraw(),
     'reset-deck': () => { resetDeck(); resetStage('survivor'); toast(t('ui.deckReset')); },
     'sc-count': el => { state.skillDice[el.dataset.who] = +el.dataset.n; renderSkillChecks(); },
     'sc-roll': el => rollSkillCheck(el.dataset.who),
+    'hide-sac': el => setSacToken(el.dataset.surv, false),
+    'show-sac': el => setSacToken(el.dataset.surv, true),
   };
 
   document.addEventListener('click', e => {

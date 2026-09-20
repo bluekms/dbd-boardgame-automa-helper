@@ -71,11 +71,17 @@ img { display: block; }
   border: 1px solid var(--line); background: var(--bg2);
   border-radius: 999px; padding: 7px 12px; font-size: 13px; font-weight: 700; letter-spacing: .05em;
 }
-.portrait-btn { padding: 0; border: 0; background: none; flex: none; }
-.portrait-btn img { width: 48px; height: 48px; border-radius: 50%; }
-.portrait-row { display: flex; padding: 0; border: 0; background: none; flex: none; }
-.portrait-row img { width: 40px; height: 40px; border-radius: 50%; margin-left: -10px; border: 2px solid var(--bg); }
-.portrait-row img:first-child { margin-left: 0; }
+.power-btn {
+  flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px;
+  border: 1px solid var(--line); background: var(--bg2); border-radius: 999px;
+  padding: 4px 14px 4px 4px; text-align: left;
+}
+.power-btn:active { filter: brightness(1.1); }
+.power-btn-portrait { width: 40px; height: 40px; border-radius: 50%; flex: none; }
+.power-btn-text { display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
+.power-btn-text b { font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.power-btn-text small { color: var(--gold); font-size: 11px; font-weight: 700; }
+.power-btn-chev { margin-left: auto; flex: none; color: var(--muted); font-size: 20px; line-height: 1; }
 
 .tile-bar { display: flex; align-items: center; justify-content: center; gap: 10px; background: var(--bg2); border: 1px solid var(--line); border-radius: 999px; padding: 4px 14px; font-size: 13px; color: var(--muted); font-weight: 600; }
 .tile-priority { display: flex; align-items: center; justify-content: center; gap: 2px; min-width: 0; }
@@ -152,6 +158,11 @@ h1 { font-size: 26px; margin: 0; letter-spacing: .02em; }
 .counters.survivors .ctl-val { width: 40px; font-size: 20px; }
 .counters.survivors .counter { padding: 8px 6px; }
 .counter.power-ready { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold) inset; }
+.counters.killer-single { grid-template-columns: 1fr; }
+
+.sac-token { border: 0; background: none; padding: 0; flex: none; width: 36px; height: 36px; }
+.sac-token img { width: 36px; height: 36px; filter: drop-shadow(0 1px 2px rgba(0,0,0,.6)); }
+.portrait-toggle { border: 0; background: none; padding: 0; flex: none; line-height: 0; }
 
 @keyframes blink { 0%, 100% { box-shadow: 0 0 0 0 rgba(179, 38, 30, 0); } 50% { box-shadow: 0 0 0 6px rgba(179, 38, 30, .55); background: var(--red2); } }
 .ctl-btn.blink { animation: blink 1.1s ease-in-out infinite; }

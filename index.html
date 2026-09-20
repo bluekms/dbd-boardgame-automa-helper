@@ -56,8 +56,11 @@
     <section id="screen-killer" class="screen hidden">
       <div class="topbar">
         <button class="icon-btn" data-action="back" aria-label="back">&lsaquo;</button>
-        <button class="portrait-btn" data-action="toggle" data-panel="killer-power"><img id="killer-portrait" src="" alt=""></button>
-        <span class="topbar-title" id="killer-name"></span>
+        <button class="power-btn" data-action="toggle" data-panel="killer-power">
+          <img id="killer-portrait" class="power-btn-portrait" src="" alt="">
+          <span class="power-btn-text"><b id="killer-name"></b><small data-i18n="ui.power"></small></span>
+          <span class="power-btn-chev">&#8250;</span>
+        </button>
         <div class="lang-wrap"><button class="lang-btn" data-action="lang-menu"></button></div>
         <button class="text-btn" data-action="toggle" data-panel="killer-rules" data-i18n="ui.rules"></button>
       </div>
@@ -74,24 +77,15 @@
         <p class="hint" data-i18n="ui.tapToClose"></p>
       </div>
 
-      <div class="counters">
+      <div class="counters killer-single">
         <div class="counter" id="counter-killer-bp">
-          <div class="counter-label"><img src="resource/icon-bp.png" alt=""><span data-i18n="ui.bp"></span></div>
+          <div class="counter-label"><img class="round" id="killer-bp-portrait" src="" alt=""><span data-i18n="ui.bp"></span></div>
           <div class="counter-ctl">
             <button class="ctl-btn" data-action="count" data-counter="killer-bp" data-delta="-1">&minus;</button>
             <input class="ctl-val" type="number" inputmode="numeric" min="0" max="12" value="4" data-counter="killer-bp">
             <button class="ctl-btn plus" data-action="count" data-counter="killer-bp" data-delta="1">+</button>
           </div>
           <div class="counter-note" id="killer-bp-note"></div>
-        </div>
-        <div class="counter" id="counter-sacrifice">
-          <div class="counter-label"><img src="resource/tile-hook.png" alt=""><span data-i18n="ui.sacrifice"></span></div>
-          <div class="counter-ctl">
-            <button class="ctl-btn" data-action="count" data-counter="sacrifice" data-delta="-1">&minus;</button>
-            <input class="ctl-val" type="number" inputmode="numeric" min="0" max="8" value="0" data-counter="sacrifice">
-            <button class="ctl-btn plus blink" data-action="count" data-counter="sacrifice" data-delta="1">+</button>
-          </div>
-          <div class="counter-note" id="sacrifice-note" data-i18n="ui.sacrificeHint"></div>
         </div>
       </div>
 
@@ -117,10 +111,9 @@
     <section id="screen-survivors" class="screen hidden">
       <div class="topbar">
         <button class="icon-btn" data-action="back" aria-label="back">&lsaquo;</button>
-        <button class="portrait-row" data-action="toggle" data-panel="survivor-power">
-          <img src="resource/survivor-dwight.png" alt=""><img src="resource/survivor-meg.png" alt=""><img src="resource/survivor-jake.png" alt=""><img src="resource/survivor-claudette.png" alt="">
-        </button>
+        <span class="topbar-title" data-i18n="home.survivors"></span>
         <div class="lang-wrap"><button class="lang-btn" data-action="lang-menu"></button></div>
+        <button class="text-btn" data-action="toggle" data-panel="survivor-power" data-i18n="ui.power"></button>
         <button class="text-btn" data-action="toggle" data-panel="survivor-items" data-i18n="ui.items"></button>
         <button class="text-btn" data-action="toggle" data-panel="survivor-rules" data-i18n="ui.rules"></button>
       </div>
@@ -154,7 +147,6 @@
       </div>
       <div class="deck-tools">
         <button class="text-btn ghost" data-action="undo-draw" data-i18n="ui.undo"></button>
-        <button class="text-btn" data-action="draw-again" data-i18n="ui.drawAgain"></button>
         <button class="text-btn ghost" data-action="reset-deck" data-i18n="ui.resetDeck"></button>
       </div>
 
