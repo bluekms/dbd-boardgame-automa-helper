@@ -10,9 +10,13 @@
   const DECK_CARDS = ['vault', 'crouch', 'sneak', 'sprint'];
   const COPIES_PER_CARD = 4;
   const UNDO_DEPTH = 8;
+  const SKILL_DIE_FACES = 6;
   const SKILL_DIE_FAIL = 0;
   const SKILL_DIE_GREAT = 5;
+  const MAX_SKILL_DICE = 4;
   const POWER_BP = 4;
+  const KILLER_BP_START = 4; // index.html 의 살인마 BP 입력 초기값과 같다
+  const SURVIVOR_COUNTER_PREFIX = 'surv-';
   // 타일 공개 우선순위 바는 아직 공개되지 않은 타일이므로, 그 색이 될 수 있는
   // 두 타일 중 하나를 대표 아이콘으로 보여준다. 노란색은 발전기/출구 앞면 대신
   // 실제 뒷면 그래픽(tile-back-yellow.png)이 룰북에 있어 그걸 그대로 쓴다.
@@ -24,12 +28,18 @@
   };
   const KILLER_TILE_ORDER = ['red', 'green', 'yellow', 'blue'];
   const SURVIVOR_TILE_ORDER = ['yellow', 'blue', 'green', 'red'];
-  const ANIM = { roll: 600, draw: 180, skill: 450, skillStagger: 220, skillReset: 160, toast: 2200 };
+  const ANIM = { roll: 600, draw: 180, skill: 450, skillStagger: 220, skillReset: 160, skillSummary: 320, toast: 2200 };
 
   const LOCALES = window.DBD_LOCALES || {};
   const $ = id => document.getElementById(id);
   const qsa = (sel, root) => Array.from((root || document).querySelectorAll(sel));
   const rand = n => Math.floor(Math.random() * n);
+  const range = n => Array.from({ length: n }, (_, i) => i + 1);
+  const killerPortrait = k => `resource/killer-${k}.png`;
+  const survivorPortrait = s => `resource/survivor-${s}.png`;
+  const survivorCounterName = s => SURVIVOR_COUNTER_PREFIX + s;
+  const survivorOfCounter = name => name.slice(SURVIVOR_COUNTER_PREFIX.length);
+  const perSurvivor = value => Object.fromEntries(SURVIVORS.map(s => [s, value]));
 
   /* ---------------------------------------------------------------- 상태 */
   const state = {
@@ -39,9 +49,9 @@
     deck: [],
     drawHistory: [],
     busy: false,
-    survivorBP: Object.fromEntries(SURVIVORS.map(s => [s, 0])),
-    survivorTouched: Object.fromEntries(SURVIVORS.map(s => [s, false])),
-    survivorSacrifice: Object.fromEntries(SURVIVORS.map(s => [s, true])),
+    survivorBP: perSurvivor(0),
+    survivorTouched: perSurvivor(false),
+    survivorSacrifice: perSurvivor(true),
     survivorOrder: SURVIVORS.slice(),
     skillDice: { killer: 1, survivor: 1 },
     skillRollToken: { killer: 0, survivor: 0 },
@@ -113,8 +123,8 @@
 
   function renderKiller() {
     const k = state.killer;
-    $('killer-portrait').src = `resource/killer-${k}.png`;
-    $('killer-bp-portrait').src = `resource/killer-${k}.png`;
+    $('killer-portrait').src = killerPortrait(k);
+    $('killer-bp-portrait').src = killerPortrait(k);
     $('killer-name').textContent = t('killer.' + k);
     $('killer-power-title').textContent = `${t('killer.' + k)} — ${t('ui.power')}`;
     $('killer-power-body').innerHTML = t('power.' + k) + `<p class="muted">${t('power.note')}</p>`;
@@ -130,14 +140,14 @@
       prioRow(4, 'resource/tile-totem.png', t('kp.4'), t('kp.4s')),
       prioRow(5, 'resource/tile-crow.png', t('kp.5'), t('kp.5s')),
       prioRow(6, 'resource/tile-locker.png', t('kp.6'), t('kp.6s'), { extra: `<ul class="sub-list">${t('kp.6list')}</ul>` }),
-      prioRow(7, `resource/killer-${k}.png`, t('kp.7'), t('kp.7s'), { round: true }),
+      prioRow(7, killerPortrait(k), t('kp.7'), t('kp.7s'), { round: true }),
       `<div class="prio note">${t('kp.8')}</div>`,
     ].join('');
   }
 
   function renderSurvivorPanels() {
     $('survivor-power-body').innerHTML = SURVIVORS
-      .map(s => `<div class="prio"><img src="resource/survivor-${s}.png" class="round" alt=""><div class="prio-body"><b>${t('surv.' + s)}</b>${t('spower.' + s)}</div></div>`)
+      .map(s => `<div class="prio"><img src="${survivorPortrait(s)}" class="round" alt=""><div class="prio-body"><b>${t('surv.' + s)}</b>${t('spower.' + s)}</div></div>`)
       .join('') + `<p class="muted">${t('spower.note')}</p>`;
     $('survivor-items-body').innerHTML = t('items');
     $('survivor-rules-body').innerHTML = t('srules');
@@ -172,16 +182,17 @@
     const bp = state.survivorBP[s];
     const ready = bp >= POWER_BP;
     const hasToken = state.survivorSacrifice[s];
+    const counter = survivorCounterName(s);
     return `<div class="counter ${ready ? 'power-ready' : ''}" id="surv-card-${s}">
         <div class="counter-label">
           <button class="sac-token ${hasToken ? '' : 'hidden'}" data-action="hide-sac" data-surv="${s}" aria-label="sacrifice token"><img src="resource/token-sacrifice.png" alt=""></button>
-          <button class="portrait-toggle" data-action="show-sac" data-surv="${s}"><img class="round" src="resource/survivor-${s}.png" alt=""></button>
+          <button class="portrait-toggle" data-action="show-sac" data-surv="${s}"><img class="round" src="${survivorPortrait(s)}" alt=""></button>
           <span>${t('surv.' + s)}</span>
         </div>
         <div class="counter-ctl">
-          <button class="ctl-btn" data-action="count" data-counter="surv-${s}" data-delta="-1">&minus;</button>
-          <input class="ctl-val" type="number" inputmode="numeric" min="0" max="6" value="${bp}" data-counter="surv-${s}">
-          <button class="ctl-btn plus ${state.survivorTouched[s] ? '' : 'blink'}" data-action="count" data-counter="surv-${s}" data-delta="1">+</button>
+          <button class="ctl-btn" data-action="count" data-counter="${counter}" data-delta="-1">&minus;</button>
+          <input class="ctl-val" type="number" inputmode="numeric" min="0" max="6" value="${bp}" data-counter="${counter}">
+          <button class="ctl-btn plus ${state.survivorTouched[s] ? '' : 'blink'}" data-action="count" data-counter="${counter}" data-delta="1">+</button>
         </div>
         <div class="counter-note ${ready ? 'power' : ''}">${ready ? t('ui.powerReady') : '&nbsp;'}</div>
       </div>`;
@@ -191,7 +202,7 @@
   function watchBlink(btn) {
     if (!btn || !btn.classList.contains('blink')) return;
     btn.addEventListener('animationend', () => {
-      state.survivorTouched[btn.dataset.counter.slice(5)] = true;
+      state.survivorTouched[survivorOfCounter(btn.dataset.counter)] = true;
     }, { once: true });
   }
   function renderSurvivorCounters() {
@@ -216,20 +227,22 @@
   }
 
   function updateKillerBpNote() {
-    const bp = +counterInput('killer-bp').value || 0;
+    const ready = counterValue('killer-bp') >= POWER_BP;
     const note = $('killer-bp-note');
-    note.textContent = bp >= POWER_BP ? t('ui.huntReady') : '';
-    note.classList.toggle('power', bp >= POWER_BP);
+    note.textContent = ready ? t('ui.huntReady') : '';
+    note.classList.toggle('power', ready);
   }
 
   function renderSkillChecks() {
     ['killer', 'survivor'].forEach(who => {
       const n = state.skillDice[who];
+      const countButtons = range(MAX_SKILL_DICE)
+        .map(i => `<button class="${i === n ? 'on' : ''}" data-action="sc-count" data-who="${who}" data-n="${i}">${i}</button>`)
+        .join('');
       $(`${who}-skillcheck`).innerHTML = `
         <div class="sc-row">
           <span class="sc-title">${t('ui.skillCheck')}</span>
-          <div class="sc-count">${[1, 2, 3, 4].map(i =>
-            `<button class="${i === n ? 'on' : ''}" data-action="sc-count" data-who="${who}" data-n="${i}">${i}</button>`).join('')}</div>
+          <div class="sc-count">${countButtons}</div>
           <button class="sc-roll" data-action="sc-roll" data-who="${who}">${t('ui.roll')}</button>
         </div>
         <div class="sc-dice" id="${who}-sc-dice"></div>
@@ -245,8 +258,9 @@
     res.classList.remove('hidden');
   }
   function resetStage(who) {
-    $(`${who}-stage-result`).classList.add('hidden');
-    $(`${who}-stage-result`).innerHTML = '';
+    const res = $(`${who}-stage-result`);
+    res.classList.add('hidden');
+    res.innerHTML = '';
     $(`${who}-stage-idle`).classList.remove('hidden');
   }
   function animateStage(who, ms, done) {
@@ -273,7 +287,7 @@
       const key = MOVE_FACES[face];
       if (key === 'power') {
         showStageResult('killer', `<div class="power-result flip-in">
-          <img src="resource/killer-${state.killer}.png" alt="">
+          <img src="${killerPortrait(state.killer)}" alt="">
           <h3>${face} — ${t('killer.' + state.killer)} · ${t('ui.power')}</h3>
           <span class="badge warn">${t('result.power')}</span>
           <div class="power-text">${t('power.' + state.killer)}</div>
@@ -332,7 +346,7 @@
     const n = state.skillDice[who];
     const dice = $(`${who}-sc-dice`);
     const summary = $(`${who}-sc-summary`);
-    const results = Array.from({ length: n }, () => rand(6));
+    const results = Array.from({ length: n }, () => rand(SKILL_DIE_FACES));
     // 이전 굴리기에서 아직 안 끝난 예약(setTimeout)이 새 굴리기의 주사위를 덮어쓰지 않도록 세대 토큰을 발급한다
     const token = ++state.skillRollToken[who];
     const stale = () => state.skillRollToken[who] !== token;
@@ -374,7 +388,7 @@
         if (!parts.length) parts.push(t('ui.scOk'));
         summary.innerHTML = parts.join(' · ');
         if (fails && who === 'killer') pulse('killer-bp');
-      }, (n - 1) * ANIM.skillStagger + ANIM.skill + 320);
+      }, (n - 1) * ANIM.skillStagger + ANIM.skill + ANIM.skillSummary);
     }, ANIM.skillReset);
   }
 
@@ -382,13 +396,16 @@
   function counterInput(name) {
     return document.querySelector(`.ctl-val[data-counter="${name}"]`);
   }
+  function counterValue(name) {
+    return +counterInput(name).value || 0;
+  }
   function setCounter(name, value) {
     const inp = counterInput(name);
     if (!inp) return;
     const clamped = Math.max(+inp.min, Math.min(+inp.max, Number.isNaN(value) ? +inp.min : value));
     inp.value = clamped;
-    if (name.startsWith('surv-')) {
-      const s = name.slice(5);
+    if (name.startsWith(SURVIVOR_COUNTER_PREFIX)) {
+      const s = survivorOfCounter(name);
       state.survivorBP[s] = clamped;
       state.survivorTouched[s] = true;
       updateSurvivorCard(s);
@@ -415,10 +432,13 @@
     history.pushState({ s: screen }, '');
     show(screen);
   }
+  function closeLangMenus() {
+    qsa('.lang-menu').forEach(m => m.remove());
+  }
   function closePanels() {
     qsa('.panel').forEach(p => p.classList.add('hidden'));
     qsa('.text-btn.active').forEach(b => b.classList.remove('active'));
-    qsa('.lang-menu').forEach(m => m.remove());
+    closeLangMenus();
   }
   function togglePanel(btn) {
     const panel = $('panel-' + btn.dataset.panel);
@@ -435,7 +455,7 @@
   function toggleLangMenu(btn) {
     const existing = btn.parentElement.querySelector('.lang-menu');
     if (existing) { existing.remove(); return; }
-    qsa('.lang-menu').forEach(m => m.remove());
+    closeLangMenus();
     const menu = document.createElement('div');
     menu.className = 'lang-menu';
     menu.innerHTML = Object.keys(LOCALES).map(code =>
@@ -457,15 +477,15 @@
   // 살인마/생존자 플레이 화면에서 뒤로 나가면, 그 사이 기록된 모든 진행 상황(카운터·주사위
   // 선택·덱·굴림 결과)을 지워 다음에 다시 들어왔을 때 항상 처음 상태로 시작하게 한다.
   function resetKillerSession() {
-    setCounter('killer-bp', 4);
+    setCounter('killer-bp', KILLER_BP_START);
     state.skillDice.killer = 1;
     renderSkillChecks();
     resetStage('killer');
   }
   function resetSurvivorSession() {
-    state.survivorBP = Object.fromEntries(SURVIVORS.map(s => [s, 0]));
-    state.survivorSacrifice = Object.fromEntries(SURVIVORS.map(s => [s, true]));
-    state.survivorTouched = Object.fromEntries(SURVIVORS.map(s => [s, false]));
+    state.survivorBP = perSurvivor(0);
+    state.survivorSacrifice = perSurvivor(true);
+    state.survivorTouched = perSurvivor(false);
     state.skillDice.survivor = 1;
     renderSurvivorCounters();
     renderSkillChecks();
@@ -475,7 +495,7 @@
 
   /* ---------------------------------------------------------------- 이벤트 */
   const ACTIONS = {
-    'lang-menu': el => toggleLangMenu(el),
+    'lang-menu': toggleLangMenu,
     'set-lang': el => setLang(el.dataset.lang),
     'go': el => {
       if (el.dataset.screen === 'survivors') shuffleSurvivorOrder();
@@ -489,15 +509,16 @@
       history.back();
     },
     'pick-killer': el => { state.killer = el.dataset.killer; renderKiller(); resetStage('killer'); go('killer'); },
-    'toggle': el => togglePanel(el),
+    'toggle': togglePanel,
     'count': el => {
-      setCounter(el.dataset.counter, (+counterInput(el.dataset.counter).value || 0) + +el.dataset.delta);
+      const name = el.dataset.counter;
+      setCounter(name, counterValue(name) + +el.dataset.delta);
       // 블러드 포인트 증가를 알리던 깜빡임(pulse)은 실제로 증가 버튼을 누르면 바로 종료한다
       el.classList.remove('pulse');
     },
-    'roll-move': () => rollMove(),
-    'draw-card': () => drawCard(),
-    'undo-draw': () => undoDraw(),
+    'roll-move': rollMove,
+    'draw-card': drawCard,
+    'undo-draw': undoDraw,
     'reset-deck': () => { resetDeck(); resetStage('survivor'); toast(t('ui.deckReset')); },
     'sc-count': el => { state.skillDice[el.dataset.who] = +el.dataset.n; renderSkillChecks(); },
     'sc-roll': el => rollSkillCheck(el.dataset.who),
@@ -507,13 +528,13 @@
 
   document.addEventListener('click', e => {
     const el = e.target.closest('[data-action]');
-    if (!el) { qsa('.lang-menu').forEach(m => m.remove()); return; }
+    if (!el) { closeLangMenus(); return; }
     const handler = ACTIONS[el.dataset.action];
     if (!handler) return;
     // 패널이 스테이지 안에 겹쳐 있을 때 패널 터치가 주사위를 굴리지 않도록 한다
     if (el.dataset.action === 'roll-move' && e.target.closest('.panel')) return;
     handler(el);
-    if (el.dataset.action !== 'lang-menu') qsa('.lang-menu').forEach(m => m.remove());
+    if (el.dataset.action !== 'lang-menu') closeLangMenus();
   });
   document.addEventListener('change', e => {
     const inp = e.target.closest('.ctl-val');
