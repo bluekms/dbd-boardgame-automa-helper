@@ -388,11 +388,10 @@
     const clamped = Math.max(+inp.min, Math.min(+inp.max, Number.isNaN(value) ? +inp.min : value));
     inp.value = clamped;
     if (name.startsWith('surv-')) {
-      state.survivorBP[name.slice(5)] = clamped;
-      state.survivorTouched = true;
-      renderSurvivorCounters();
-    } else if (name === 'sacrifice') {
-      qsa('#counter-sacrifice .blink').forEach(b => b.classList.remove('blink'));
+      const s = name.slice(5);
+      state.survivorBP[s] = clamped;
+      state.survivorTouched[s] = true;
+      updateSurvivorCard(s);
     } else if (name === 'killer-bp') {
       updateKillerBpNote();
     }
