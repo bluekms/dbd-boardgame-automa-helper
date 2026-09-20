@@ -13,11 +13,14 @@
   const SKILL_DIE_FAIL = 0;
   const SKILL_DIE_GREAT = 5;
   const POWER_BP = 4;
+  // 타일 공개 우선순위 바는 아직 공개되지 않은 타일이므로, 그 색이 될 수 있는
+  // 두 타일 중 하나를 대표 아이콘으로 보여준다. 노란색은 발전기/출구 앞면 대신
+  // 실제 뒷면 그래픽(tile-back-yellow.png)이 룰북에 있어 그걸 그대로 쓴다.
   const TILE_IMG = {
-    red: 'resource/tile-hook.png',
-    green: 'resource/tile-pallet.png',
-    yellow: 'resource/tile-generator.png',
-    blue: 'resource/tile-chest.png',
+    red: 'resource/tile-back-red.png',
+    green: 'resource/tile-back-green.png',
+    yellow: 'resource/tile-back-yellow.png',
+    blue: 'resource/tile-back-blue.png',
   };
   const KILLER_TILE_ORDER = ['red', 'green', 'yellow', 'blue'];
   const SURVIVOR_TILE_ORDER = ['yellow', 'blue', 'green', 'red'];
@@ -105,7 +108,7 @@
         extra: `<button class="prio-more" data-action="toggle" data-panel="kp1more">${t('kp.1more')}</button>` +
                `<ul class="sub-list hidden" id="panel-kp1more">${t('kp.1list')}</ul>`,
       }),
-      prioRow(2, 'resource/icon-attack.png', t('kp.2'), t('kp.2s')),
+      prioRow(2, 'resource/icon-claw.png', t('kp.2'), t('kp.2s')),
       prioRow(3, 'resource/tile-generator.png', t('kp.3'), t('kp.3s')),
       prioRow(4, 'resource/tile-totem.png', t('kp.4'), t('kp.4s')),
       prioRow(5, 'resource/tile-crow.png', t('kp.5'), t('kp.5s')),
@@ -132,7 +135,7 @@
       prioRow(5, 'resource/tile-chest.png', t('sp.5'), t('sp.5s'), { skip: t('sp.5skip') }),
       prioRow(6, 'resource/tile-pallet.png', t('sp.6'), t('sp.6s')),
       prioRow(7, 'resource/tile-locker.png', t('sp.7'), t('sp.7s')),
-      prioRow(8, 'resource/icon-bp.png', t('sp.8'), t('sp.8s')),
+      prioRow(8, null, t('sp.8'), t('sp.8s')),
       `<div class="prio note">${t('sp.9')}</div>`,
     ].join('');
   }
@@ -140,9 +143,10 @@
   function prioRow(num, img, title, sub, opts = {}) {
     const skip = opts.skip ? `<span class="skip">${opts.skip}</span>` : '';
     const note = opts.note ? `<br><small>${opts.note}</small>` : '';
+    const icon = img ? `<img src="${img}" alt="" class="${opts.round ? 'round' : ''}">` : '';
     return `<div class="prio">
       <div class="prio-num">${num}</div>
-      <img src="${img}" alt="" class="${opts.round ? 'round' : ''}">
+      ${icon}
       <div class="prio-body"><b>${title}${skip}</b><span>${sub}</span>${note}${opts.extra || ''}</div>
     </div>`;
   }
